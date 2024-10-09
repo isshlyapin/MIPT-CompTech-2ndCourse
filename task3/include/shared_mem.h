@@ -1,7 +1,6 @@
 #pragma once
 
 #include <semaphore.h>
-#include <stdio.h>
 
 #include "config.h"
 
@@ -15,4 +14,4 @@ struct shared_data {
     sem_t sem_read;
 };
 
-void sampleSharedMemory(const char *fname_read, const char *fname_write);
+int sampleSharedMemory(const char *fname_read, const char *fname_write);

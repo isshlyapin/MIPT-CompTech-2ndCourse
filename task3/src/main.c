@@ -1,6 +1,8 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "shared_mem.h"
+#include "message_queue.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -9,6 +11,8 @@ int main(int argc, char* argv[]) {
     }
 
     sampleSharedMemory(argv[1], argv[2]);
+
+    // sampleMessageQueue(argv[1], argv[2]);
 
     return EXIT_SUCCESS;
 }

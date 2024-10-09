@@ -1,29 +1,24 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/shm.h>
-#include <sys/ipc.h>
 #include <string.h>
-#include <semaphore.h>
-#include <sys/wait.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include <unistd.h>
-#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
+#include <assert.h>
+#include <time.h>
 
 #include "config.h"
-#include "shared_mem.h"
+#include "message_queue.h"
 
-int sampleSharedMemory(const char *fname_read, const char *fname_write) {
+int sampleMessageQueue(const char *fname_read, const char *fname_write) {
     key_t key = ftok("shmfile", 65);
     
-    int shmid = shmget(key, sizeof(SharedData), 0666 | IPC_CREAT);
-
-    SharedData *data = (SharedData*)shmat(shmid, NULL, 0);
-
-    sem_init(&data->sem_write, 1, 1);
-    sem_init(&data->sem_read, 1, 0);
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    assert(msgid != -1);
 
     struct timespec start, end;
     double elapsed_time = 0;
@@ -40,26 +35,32 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
             perror("fork failed");
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
-            while (1) {
-                sem_wait(&data->sem_read);
-                write(fd_wr, data->message, data->len_message);
-                sem_post(&data->sem_write);
-                
-                if (data->len_message == 0) {
+            Message msg_cons;
+            
+            for (ssize_t len_msg = 0; 1; ) {
+                len_msg = msgrcv(msgid, &msg_cons, sizeof(msg_cons.mtext), 0, 0);
+
+                if (msg_cons.mtype != DONE_TYPE_MESSAGE) {
+                    write(fd_wr, msg_cons.mtext, len_msg);
+                } else {
                     break;
                 }
             }
-            shmdt(data);
+
             exit(EXIT_SUCCESS);
         } else {
+            Message msg_prod;
             clock_gettime(CLOCK_MONOTONIC, &start);
 
-            while (1) {
-                sem_wait(&data->sem_write);
-                data->len_message = read(fd_rd, data->message, BUF_SIZE);
-                sem_post(&data->sem_read);
-                
-                if (data->len_message == 0) {
+            for (int len_msg = 0; 1; ) {
+                len_msg = read(fd_rd, msg_prod.mtext, BUF_SIZE);
+                                
+                if (len_msg) {
+                    msg_prod.mtype = STD_TYPE_MESSAGE;
+                    msgsnd(msgid, &msg_prod, len_msg, 0);
+                } else {
+                    msg_prod.mtype = DONE_TYPE_MESSAGE;
+                    msgsnd(msgid, &msg_prod, 0, 0);
                     break;
                 }
             }
@@ -80,8 +81,7 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
         close(fd_rd);
     }
 
-    shmdt(data);
-    shmctl(shmid, IPC_RMID, NULL);
+    msgctl(msgid, IPC_RMID, NULL);
 
     printf("Elapsed time: %.2f с\n", elapsed_time / 1e9 / NUM_ITERATIONS);
 

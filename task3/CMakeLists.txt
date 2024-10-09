@@ -12,6 +12,7 @@ set(PROJECT_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES
     src/main.c
     src/shared_mem.c
+    src/message_queue.c
 )
 
 add_executable(interprocess_communication ${SOURCES})

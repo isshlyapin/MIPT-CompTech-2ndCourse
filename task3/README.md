@@ -6,9 +6,9 @@
 2) msgmax = 8192
 3) pipe-max-size = 1048576
 
-![]()
+![](https://github.com/isshlyapin/MIPT-CompTech-2ndCourse/blob/main/task3/image/grafic1.svg)
 
-![]()
+![](https://github.com/isshlyapin/MIPT-CompTech-2ndCourse/blob/main/task3/image/grafic2.svg)
 
 ## Запуск на своей машине
 

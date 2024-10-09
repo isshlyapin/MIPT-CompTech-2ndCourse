@@ -27,22 +27,21 @@ int sampleMessageQueue(const char *fname_read, const char *fname_write) {
         return EXIT_FAILURE;
     }
 
-    int fd_rd = open(fname_read, O_RDONLY);
-    if (fd_rd == -1) {
-        perror("Error open failed");
-        exit(EXIT_FAILURE);
-    }
-
-    int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
-    if (fd_wr == -1) {
-        perror("Error open failed");
-        exit(EXIT_FAILURE);
-    }
-
     struct timespec start, end;
     double elapsed_time = 0;
 
     for (int i = 0; i < NUM_ITERATIONS; ++i) {
+        int fd_rd = open(fname_read, O_RDONLY);
+        if (fd_rd == -1) {
+            perror("Error open failed");
+            exit(EXIT_FAILURE);
+        }
+
+        int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
+        if (fd_wr == -1) {
+            perror("Error open failed");
+            exit(EXIT_FAILURE);
+        }
 
         pid_t pid = fork();
 
@@ -54,6 +53,7 @@ int sampleMessageQueue(const char *fname_read, const char *fname_write) {
             
             for (ssize_t len_msg = 0; 1; ) {
                 len_msg = msgrcv(msgid, &msg_cons, sizeof(msg_cons.mtext), 0, 0);
+                printf("Child len message: %ld\n", len_msg);
 
                 if (msg_cons.mtype != DONE_TYPE_MESSAGE) {
                     write(fd_wr, msg_cons.mtext, len_msg);
@@ -73,7 +73,10 @@ int sampleMessageQueue(const char *fname_read, const char *fname_write) {
                                 
                 if (len_msg) {
                     msg_prod.mtype = STD_TYPE_MESSAGE;
-                    msgsnd(msgid, &msg_prod, len_msg, 0);
+                    if (msgsnd(msgid, &msg_prod, len_msg, 0) == -1) {
+                        perror("Error msgsnd failed");
+                        exit(EXIT_FAILURE);
+                    };
                 } else {
                     msg_prod.mtype = DONE_TYPE_MESSAGE;
                     msgsnd(msgid, &msg_prod, 0, 0);
@@ -93,12 +96,9 @@ int sampleMessageQueue(const char *fname_read, const char *fname_write) {
         elapsed_time += (end.tv_sec - start.tv_sec) * 1e9;
         elapsed_time += (end.tv_nsec - start.tv_nsec);
 
-        lseek(fd_rd, 0, SEEK_SET);
-        lseek(fd_wr, 0, SEEK_SET);
+        close(fd_rd);
+        close(fd_wr);
     }
-
-    close(fd_rd);
-    close(fd_wr);
 
     msgctl(msgid, IPC_RMID, NULL);
 

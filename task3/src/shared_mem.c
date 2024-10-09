@@ -15,7 +15,7 @@
 #include "config.h"
 #include "shared_mem.h"
 
-int sampleSharedMemory(const char *fname_read, const char *fname_write) {
+int exchangeSharedMemory(const char *fname_read, const char *fname_write) {
     key_t key = ftok(fname_read, 65);
     if (key == -1) {
         perror("Error ftok failed");
@@ -44,22 +44,21 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
         return EXIT_FAILURE;
     }
 
-    int fd_rd = open(fname_read, O_RDONLY);
-    if (fd_rd == -1) {
-        perror("Error open failed");
-        exit(EXIT_FAILURE);
-    }
-
-    int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
-    if (fd_wr == -1) {
-        perror("Error open failed");
-        exit(EXIT_FAILURE);
-    }
-
     struct timespec start, end;
     double elapsed_time = 0;
 
     for (int i = 0; i < NUM_ITERATIONS; ++i) {
+        int fd_rd = open(fname_read, O_RDONLY);
+        if (fd_rd == -1) {
+            perror("Error open failed");
+            exit(EXIT_FAILURE);
+        }
+
+        int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
+        if (fd_wr == -1) {
+            perror("Error open failed");
+            exit(EXIT_FAILURE);
+        }
 
         pid_t pid = fork();
 
@@ -84,6 +83,7 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
             while (1) {
                 sem_wait(&data->sem_write);
                 data->len_message = read(fd_rd, data->message, BUF_SIZE);
+                printf("Parent len message: %d\n", data->len_message);
                 sem_post(&data->sem_read);
                 
                 if (data->len_message == 0) {
@@ -103,12 +103,10 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
         elapsed_time += (end.tv_sec - start.tv_sec) * 1e9;
         elapsed_time += (end.tv_nsec - start.tv_nsec);
 
-        lseek(fd_wr, 0, SEEK_SET);
-        lseek(fd_rd, 0, SEEK_SET);
+        close(fd_wr);
+        close(fd_rd);
     }
 
-    close(fd_wr);
-    close(fd_rd);
 
     shmdt(data);
     shmctl(shmid, IPC_RMID, NULL);

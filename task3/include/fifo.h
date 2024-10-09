@@ -2,4 +2,4 @@
 
 #include "config.h"
 
-int sampleFifo(const char *fname_read, const char *fname_write);
+int exchangeFifo(int fd_read, int fd_write);

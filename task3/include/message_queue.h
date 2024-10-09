@@ -14,4 +14,4 @@ enum TypeMessage {
     DONE_TYPE_MESSAGE = 2
 };
 
-int sampleMessageQueue(const char *fname_read, const char *fname_write);
+int exchangeMessageQueue(int fd_read, int fd_write);

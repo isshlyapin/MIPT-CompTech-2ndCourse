@@ -14,4 +14,4 @@ struct shared_data {
     sem_t sem_read;
 };
 
-int sampleSharedMemory(const char *fname_read, const char *fname_write);
+int exchangeSharedMemory(int fd_read, int fd_write);

@@ -3,6 +3,7 @@
 
 #include "shared_mem.h"
 #include "message_queue.h"
+#include "fifo.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -10,9 +11,11 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    sampleSharedMemory(argv[1], argv[2]);
+    // sampleSharedMemory(argv[1], argv[2]);
 
     // sampleMessageQueue(argv[1], argv[2]);
 
-    return EXIT_SUCCESS;
+    sampleFifo(argv[1], argv[2]);
+
+    return 0;
 }

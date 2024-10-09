@@ -13,6 +13,7 @@ set(SOURCES
     src/main.c
     src/shared_mem.c
     src/message_queue.c
+    src/fifo.c
 )
 
 add_executable(interprocess_communication ${SOURCES})

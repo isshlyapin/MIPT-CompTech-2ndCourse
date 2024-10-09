@@ -16,28 +16,55 @@
 #include "shared_mem.h"
 
 int sampleSharedMemory(const char *fname_read, const char *fname_write) {
-    key_t key = ftok("shmfile", 65);
+    key_t key = ftok(fname_read, 65);
+    if (key == -1) {
+        perror("Error ftok failed");
+        return EXIT_FAILURE;
+    }
     
     int shmid = shmget(key, sizeof(SharedData), 0666 | IPC_CREAT);
+    if (shmid == -1) {
+        perror("Error shmget failed");
+        return EXIT_FAILURE;
+    }
 
     SharedData *data = (SharedData*)shmat(shmid, NULL, 0);
+    if (data == (void*)-1) {
+        perror("Error shmat failed");
+        return EXIT_FAILURE;
+    }
 
-    sem_init(&data->sem_write, 1, 1);
-    sem_init(&data->sem_read, 1, 0);
+    if (sem_init(&data->sem_write, 1, 1) == -1) {
+        perror("Error sem_init failed");
+        return EXIT_FAILURE;
+    }
+
+    if (sem_init(&data->sem_read, 1, 0) == -1) {
+        perror("Error sem_init failed");
+        return EXIT_FAILURE;
+    }
+
+    int fd_rd = open(fname_read, O_RDONLY);
+    if (fd_rd == -1) {
+        perror("Error open failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
+    if (fd_wr == -1) {
+        perror("Error open failed");
+        exit(EXIT_FAILURE);
+    }
 
     struct timespec start, end;
     double elapsed_time = 0;
 
     for (int i = 0; i < NUM_ITERATIONS; ++i) {
-        int fd_rd = open(fname_read, O_RDONLY); 
-        assert(fd_rd != -1);
-        int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
-        assert(fd_wr != -1);
 
         pid_t pid = fork();
 
         if (pid < 0) {
-            perror("fork failed");
+            perror("Error fork failed");
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
             while (1) {
@@ -68,7 +95,7 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
         int status = EXIT_FAILURE;
         wait(&status);
         if (status != EXIT_SUCCESS) {
-            perror("wait failed");
+            perror("Error wait failed");
             exit(EXIT_FAILURE);
         }
 
@@ -76,14 +103,17 @@ int sampleSharedMemory(const char *fname_read, const char *fname_write) {
         elapsed_time += (end.tv_sec - start.tv_sec) * 1e9;
         elapsed_time += (end.tv_nsec - start.tv_nsec);
 
-        close(fd_wr);
-        close(fd_rd);
+        lseek(fd_wr, 0, SEEK_SET);
+        lseek(fd_rd, 0, SEEK_SET);
     }
+
+    close(fd_wr);
+    close(fd_rd);
 
     shmdt(data);
     shmctl(shmid, IPC_RMID, NULL);
 
-    printf("Elapsed time: %.2f с\n", elapsed_time / 1e9 / NUM_ITERATIONS);
+    printf("Copy time with shared memory: %.2f мс\n", elapsed_time / 1e6 / NUM_ITERATIONS);
 
     return EXIT_SUCCESS;
 }

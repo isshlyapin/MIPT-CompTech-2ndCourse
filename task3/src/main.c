@@ -11,9 +11,9 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    // sampleSharedMemory(argv[1], argv[2]);
+    sampleSharedMemory(argv[1], argv[2]);
 
-    // sampleMessageQueue(argv[1], argv[2]);
+    sampleMessageQueue(argv[1], argv[2]);
 
     sampleFifo(argv[1], argv[2]);
 

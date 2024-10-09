@@ -12,18 +12,27 @@
 #include "fifo.h"
 
 int sampleFifo(const char *fname_read, const char *fname_write) {
-    // mkfifo(FIFO_NAME, 0666);
-    assert(mkfifo(FIFO_NAME, 0666) == 0);
+    if (mkfifo(FIFO_NAME, 0666) != 0) {
+        perror("Error mkfifo failed");
+        return EXIT_FAILURE; 
+    }
+
+    int fd_rd = open(fname_read, O_RDONLY); 
+    if (fd_rd == -1) {
+        perror("Error open failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
+    if (fd_wr == -1) {
+        perror("Error open failed");
+        exit(EXIT_FAILURE);
+    }
 
     struct timespec start, end;
     double elapsed_time = 0;
 
     for (int i = 0; i < NUM_ITERATIONS; ++i) {
-        int fd_rd = open(fname_read, O_RDONLY); 
-        assert(fd_rd != -1);
-        int fd_wr = open(fname_write, O_WRONLY | O_CREAT, 0644);
-        assert(fd_wr != -1);
-
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -31,7 +40,10 @@ int sampleFifo(const char *fname_read, const char *fname_write) {
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
             int fd_fifo_rd = open(FIFO_NAME, O_RDONLY);
-            assert(fd_rd != -1);
+            if (fd_fifo_rd == -1) {
+                perror("Error open failed");
+                exit(EXIT_FAILURE);
+            }
             
             char buf[BUF_SIZE];
 
@@ -48,7 +60,10 @@ int sampleFifo(const char *fname_read, const char *fname_write) {
             exit(EXIT_SUCCESS);
         } else {
             int fd_fifo_wr = open(FIFO_NAME, O_WRONLY);
-            assert(fd_fifo_wr != -1);
+            if (fd_fifo_wr == -1) {
+                perror("Error open failed");
+                exit(EXIT_FAILURE);
+            }
 
             char buf[BUF_SIZE];
 
@@ -78,13 +93,15 @@ int sampleFifo(const char *fname_read, const char *fname_write) {
         elapsed_time += (end.tv_sec - start.tv_sec) * 1e9;
         elapsed_time += (end.tv_nsec - start.tv_nsec);
 
-        close(fd_wr);
-        close(fd_rd);
+        lseek(fd_rd, 0, SEEK_SET);
+        lseek(fd_wr, 0, SEEK_SET);
     }
+    close(fd_wr);
+    close(fd_rd);
 
     unlink(FIFO_NAME);
 
-    printf("Elapsed time: %.2f с\n", elapsed_time / 1e9 / NUM_ITERATIONS);
+    printf("Copy time with FIFO: %.2f мс\n", elapsed_time / 1e6 / NUM_ITERATIONS);
 
     return EXIT_SUCCESS;
 }

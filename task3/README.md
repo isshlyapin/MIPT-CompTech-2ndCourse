@@ -39,3 +39,10 @@ cmake --build build
 ```
 ./bin/interprocess_communication
 ```
+### Описание вывода
+1 - Shared Memory
+2 - Message Queue
+3 - FIFO
+Параметры по умолчанию: (изменить можно в файле include/config.h)
+  1) Размер кеша 4кб
+  2) Усреднение по 10 измерениям

@@ -32,14 +32,14 @@ enum error_codes {
     ERROR_SEM_INIT = 13
 };
 
-key_t generate_unique_key();
+key_t generate_unique_key(void);
 int initSharedMemory(SharedMemoryConfig *config);
 ssize_t scatterPointsMonteCarlo(double left, double right, double *height, double (*f)(double), size_t npoints);
 void computeDefiniteIntegralOnStreams(double a, double b, double (*f)(double), SharedData *data, int nstreams);
 
 
 
-key_t generate_unique_key() {
+key_t generate_unique_key(void) {
     char temp_filename[] = "/tmp/somefileXXXXXX";
     int fd = mkstemp(temp_filename);
     if (fd == -1) {
@@ -236,5 +236,3 @@ double testComputeDefiniteIntegral(double a, double b, double (*f)(double), int 
 
     return NAN;
 }
-
-
